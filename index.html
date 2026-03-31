@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tobeez — Activation Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --bg:#0a0f14; --bg2:#0f1820; --bg3:#151f2a; --border:#1d2e3d;
+  --teal:#2AABB8; --teal2:#1A7A8A; --teal3:#0D4F5C;
+  --org:#E8854A; --grn:#3DBE75; --red:#E84A4A; --yel:#F5C842;
+  --txt:#dde8f0; --txt2:#7a9ab0; --txt3:#4a6a7a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt)}
+
+/* ── TOPBAR ── */
+#bar{height:52px;background:linear-gradient(90deg,var(--teal3),var(--teal2));display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--teal);flex-shrink:0;z-index:3000}
+.brand .logo{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:#fff;letter-spacing:-1px}
+.brand .tag{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1.5px;margin-top:1px}
+.kpis{display:flex;gap:8px}
+.kpi{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:5px 14px;text-align:center;min-width:64px}
+.kpi .v{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;line-height:1.1}
+.kpi .l{font-size:8px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:1px}
+
+/* ── UPLOAD SCREEN ── */
+#upload-screen{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
+.ucard{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 40px;max-width:560px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.ucard-top{text-align:center;margin-bottom:28px}
+.ucard-top .icon{font-size:44px;margin-bottom:14px}
+.ucard-top h2{font-size:20px;font-weight:600;color:#fff;margin-bottom:6px}
+.ucard-top p{font-size:12px;color:var(--txt2);line-height:1.6}
+
+/* Tab switcher */
+.tabs{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:20px;gap:3px}
+.tab{flex:1;padding:8px;border:none;border-radius:8px;background:transparent;color:var(--txt2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;text-align:center}
+.tab.on{background:var(--teal3);color:#fff;border:1px solid var(--teal2)}
+
+/* Upload tab */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:28px 20px;cursor:pointer;transition:all .2s;position:relative;background:var(--bg3);text-align:center}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--teal);background:rgba(42,171,184,.06)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-zone .dz-icon{font-size:28px;margin-bottom:8px}
+.drop-zone .dz-txt{font-size:12px;color:var(--txt2)}.drop-zone .dz-txt b{color:var(--teal)}
+.drop-zone .dz-sub{font-size:10px;color:var(--txt3);margin-top:5px}
+
+/* Paste tab */
+.paste-area{
+  width:100%;min-height:140px;max-height:200px;padding:12px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+  color:var(--txt);font-family:'DM Mono',monospace;font-size:10px;line-height:1.5;
+  resize:vertical;outline:none;transition:border-color .2s;
+}
+.paste-area:focus{border-color:var(--teal)}
+.paste-area::placeholder{color:var(--txt3);font-family:'DM Sans',sans-serif;font-size:11px}
+.paste-hint{font-size:10px;color:var(--txt3);margin-top:6px;line-height:1.5}
+.paste-hint b{color:var(--txt2)}
+
+/* Status row */
+.status-row{display:flex;align-items:center;gap:10px;margin:12px 0;min-height:32px}
+.file-ok{font-size:11px;color:var(--grn);font-weight:500}
+.file-cnt{font-size:11px;color:var(--txt2)}
+.err-msg{font-size:11px;color:var(--red)}
+
+/* Launch button */
+.btn-launch{width:100%;padding:12px;background:var(--teal);border:none;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-launch:hover{background:var(--teal2)}
+.btn-launch:disabled{background:var(--bg3);color:var(--txt3);cursor:not-allowed}
+
+/* Headers ref */
+.hdr-ref{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:14px}
+.hdr-ref .ht{font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;font-weight:600}
+.htags{display:flex;flex-wrap:wrap;gap:4px}
+.htag{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;background:rgba(42,171,184,.1);border:1px solid rgba(42,171,184,.2);border-radius:5px;color:var(--txt)}
+
+/* ── MAIN APP ── */
+#app{display:flex;height:calc(100vh - 52px)}
+#side{width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+#side::-webkit-scrollbar{width:3px}
+#side::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.pnl{border-bottom:1px solid var(--border);padding:11px 13px}
+.pt{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--teal);margin-bottom:8px}
+.btn-reup{width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt2);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-reup:hover{border-color:var(--teal);color:var(--teal)}
+#srch{width:100%;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:11px;outline:none}
+#srch:focus{border-color:var(--teal)}
+#sres{margin-top:5px;max-height:110px;overflow-y:auto}
+.sri{font-size:10px;padding:5px 7px;border-radius:6px;cursor:pointer;color:var(--txt2);transition:all .15s}
+.sri:hover{background:var(--bg3);color:#fff}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.sb{font-size:10px;padding:7px 6px;border-radius:8px;border:2px solid transparent;cursor:pointer;text-align:center;font-weight:600;transition:all .15s;font-family:'DM Sans',sans-serif}
+.sb.on{border-color:currentColor!important}
+.fw{display:flex;flex-wrap:wrap;gap:4px}
+.fb{font-size:10px;padding:4px 9px;border-radius:14px;border:1px solid var(--border);background:var(--bg3);color:var(--txt2);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'DM Sans',sans-serif}
+.fb.on{background:rgba(42,171,184,.15);border-color:var(--teal);color:#fff}
+.li{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:10px;color:var(--txt2)}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(255,255,255,.2)}
+.sw{width:13px;height:8px;border-radius:2px;flex-shrink:0;opacity:.75}
+.st{display:flex;justify-content:space-between;margin-bottom:4px;font-size:10px}
+.sl{color:var(--txt3)}.sv{font-weight:600;color:var(--txt);font-family:'DM Mono',monospace;font-size:10px}
+.rr{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.rd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rn{font-size:10px;color:var(--txt2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc{font-family:'DM Mono',monospace;font-size:10px;color:var(--txt3);font-weight:500}
+#mwrap{flex:1;position:relative}
+#map{width:100%;height:100%}
+#cbar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:2000;background:rgba(10,15,20,.9);border:1px solid var(--border);border-radius:20px;padding:6px 20px;font-size:10px;color:var(--txt3);display:flex;gap:16px;backdrop-filter:blur(8px);pointer-events:none;white-space:nowrap}
+#cbar b{color:var(--txt);font-family:'DM Mono',monospace}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spin{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{font-size:12px;color:var(--txt3)}
+.leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid var(--teal)!important;border-radius:12px!important;color:var(--txt)!important;box-shadow:0 8px 32px rgba(0,0,0,.6)!important}
+.leaflet-popup-tip{background:var(--bg2)!important}
+.leaflet-popup-content{margin:14px 16px!important}
+.pn{font-size:13px;font-weight:700;color:#fff;margin-bottom:3px}
+.pr{font-size:10px;color:var(--teal);margin-bottom:10px;font-weight:500}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:10px}
+.pk{font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px}
+.pv{font-size:11px;color:var(--txt);font-weight:600;font-family:'DM Mono',monospace}
+.pst{padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700;text-align:center}
+.pst-o{background:rgba(61,190,117,.12);color:var(--grn);border:1px solid rgba(61,190,117,.3)}
+.pst-c{background:rgba(42,171,184,.12);color:var(--teal);border:1px solid rgba(42,171,184,.3)}
+.pst-p{background:rgba(232,133,74,.12);color:var(--org);border:1px solid rgba(232,133,74,.3)}
+.leaflet-tooltip{background:var(--bg2)!important;border:1px solid var(--teal)!important;color:var(--txt)!important;font-size:11px!important;font-weight:600!important;border-radius:7px!important;font-family:'DM Sans',sans-serif!important}
+
+/* ── NAV TABS IN TOPBAR ── */
+.nav-tabs{display:flex;gap:3px;margin:0 16px}
+.nav-tab{padding:5px 14px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:transparent;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.nav-tab.on{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff}
+.nav-tab:hover:not(.on){color:rgba(255,255,255,.75);border-color:rgba(255,255,255,.2)}
+
+/* ── DASHBOARD PANEL ── */
+#dashboard{display:none;height:calc(100vh - 52px);background:var(--bg);overflow-y:auto;padding:24px 28px}
+#dashboard::-webkit-scrollbar{width:4px}
+#dashboard::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* Filter bar */
+.dash-filters{display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.dash-filters label{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-right:2px}
+.df-group{display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px 12px}
+.df-select,.df-input{background:transparent;border:none;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;min-width:90px}
+.df-select option{background:var(--bg2)}
+.df-divider{width:1px;height:20px;background:var(--border);margin:0 4px}
+.df-period-btns{display:flex;gap:3px}
+.df-pbtn{padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--txt2);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;transition:all .15s}
+.df-pbtn.on{background:rgba(42,171,184,.15);border-color:var(--teal);color:var(--teal)}
+.df-reset{padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--txt3);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;transition:all .15s;margin-left:auto}
+.df-reset:hover{border-color:var(--org);color:var(--org)}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.dkpi{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s}
+.dkpi:hover{border-color:var(--teal2)}
+.dkpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--teal))}
+.dkpi .dkpi-val{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;color:#fff;line-height:1;margin-bottom:6px}
+.dkpi .dkpi-lbl{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.dkpi .dkpi-sub{font-size:10px;color:var(--txt3);margin-top:5px}
+.dkpi .dkpi-delta{font-size:11px;margin-top:6px;font-weight:600}
+.dkpi .dkpi-delta.up{color:var(--grn)}.dkpi .dkpi-delta.down{color:var(--red)}
+
+/* Chart grid */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-grid.full{grid-template-columns:1fr}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+.chart-card .cc-title{font-size:12px;font-weight:600;color:var(--txt);margin-bottom:4px}
+.chart-card .cc-sub{font-size:10px;color:var(--txt3);margin-bottom:16px}
+.chart-wrap{position:relative}
+
+/* Rep table */
+.rep-table{width:100%;border-collapse:collapse;font-size:11px}
+.rep-table th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);font-weight:600;padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.rep-table td{padding:8px 10px;border-bottom:1px solid rgba(29,46,61,.5);color:var(--txt2);vertical-align:middle}
+.rep-table tr:last-child td{border-bottom:none}
+.rep-table tr:hover td{background:rgba(42,171,184,.04);color:var(--txt)}
+.rep-bar-wrap{width:100%;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.rep-bar{height:100%;border-radius:3px;transition:width .6s ease}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700}
+.badge-grn{background:rgba(61,190,117,.15);color:var(--grn);border:1px solid rgba(61,190,117,.25)}
+.badge-red{background:rgba(232,74,74,.15);color:var(--red);border:1px solid rgba(232,74,74,.25)}
+.badge-yel{background:rgba(245,200,66,.15);color:var(--yel);border:1px solid rgba(245,200,66,.25)}
+
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader"><div class="spin"></div><p id="loader-msg">Loading map…</p></div>
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+<div class="ucard">
+  <div class="ucard-top">
+    <div class="icon">🗺️</div>
+    <h2>Tobeez Activation Map</h2>
+    <p>Upload your call log or paste directly from Excel — the map updates instantly with every refresh.</p>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab on" id="tab-file" onclick="switchTab('file')">📁 Upload File</button>
+    <button class="tab"    id="tab-paste" onclick="switchTab('paste')">📋 Paste from Excel</button>
+  </div>
+
+  <!-- FILE TAB -->
+  <div id="pane-file">
+    <div class="drop-zone" id="dz">
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls,.ods,.txt">
+      <div class="dz-icon">📂</div>
+      <div class="dz-txt"><b>Click to upload</b> or drag & drop</div>
+      <div class="dz-sub">Supports .xlsx · .xls · .csv</div>
+    </div>
+  </div>
+
+  <!-- PASTE TAB -->
+  <div id="pane-paste" style="display:none">
+    <textarea class="paste-area" id="paste-area" placeholder="Select all cells in your Excel sheet (Ctrl+A), copy (Ctrl+C), then paste here (Ctrl+V)…" spellcheck="false"></textarea>
+    <div class="paste-hint">
+      <b>How to copy from Excel:</b> Open your Raw Call Log sheet → Select all (Ctrl+A) → Copy (Ctrl+C) → Click here and paste (Ctrl+V)
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-row">
+    <div id="status-msg"></div>
+  </div>
+
+  <!-- HEADERS REF -->
+  <div class="hdr-ref">
+    <div class="ht">Expected columns</div>
+    <div class="htags">
+      <span class="htag">SALE_REP</span><span class="htag">CUSTOMER_NAME</span>
+      <span class="htag">CONTACT NUMBER</span><span class="htag">CITY</span>
+      <span class="htag">X</span><span class="htag">Y</span>
+      <span class="htag">VALUE_TIER</span><span class="htag">TOTAL_REVENUE</span>
+      <span class="htag">ORDER_COUNT</span><span class="htag">DAYS_INACTIVE</span>
+      <span class="htag">LAST_ORDER_DATE</span><span class="htag">CONTACT_1_DATE</span>
+      <span class="htag">CONTACT_1_RESULT</span><span class="htag">CONTACT_2_DATE</span>
+      <span class="htag">CONTACT_2_RESULT</span><span class="htag">ORDER</span>
+      <span class="htag">Order Date</span><span class="htag">ORDER_VALUE</span>
+      <span class="htag">Order Status</span><span class="htag">NOTES</span>
+    </div>
+  </div>
+
+  <button class="btn-launch" id="btn-go" disabled onclick="launchMap()">Launch Map →</button>
+</div>
+</div>
+
+<!-- TOPBAR -->
+<div id="bar" style="display:none">
+  <div class="brand"><div class="logo">tobeez</div><div class="tag">Activation Map</div></div>
+  <div class="nav-tabs">
+    <button class="nav-tab on" id="nav-map" onclick="switchView('map')">🗺 Map</button>
+    <button class="nav-tab"    id="nav-dash" onclick="switchView('dash')">📊 Dashboard</button>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="k1" style="color:var(--teal)">—</div><div class="l">Total</div></div>
+    <div class="kpi"><div class="v" id="k2" style="color:var(--yel)">—</div><div class="l">Called</div></div>
+    <div class="kpi"><div class="v" id="k3" style="color:var(--grn)">—</div><div class="l">Orders</div></div>
+    <div class="kpi"><div class="v" id="k4" style="color:var(--org)">—</div><div class="l">Conv%</div></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <div id="side">
+    <div class="pnl"><button class="btn-reup" onclick="showUpload()">⬆ Upload new data</button></div>
+    <div class="pnl">
+      <div class="pt">🔍 Search</div>
+      <input id="srch" placeholder="Client, rep or city…" autocomplete="off">
+      <div id="sres"></div>
+    </div>
+    <div class="pnl">
+      <div class="pt">📊 Status</div>
+      <div class="sg">
+        <button class="sb on" id="s-all"     style="background:var(--bg3);color:#fff"                onclick="setSt('all')">All</button>
+        <button class="sb"    id="s-order"   style="background:rgba(61,190,117,.1);color:var(--grn)" onclick="setSt('order')">✅ Orders</button>
+        <button class="sb"    id="s-called"  style="background:rgba(42,171,184,.1);color:var(--teal)" onclick="setSt('called')">📞 Called</button>
+        <button class="sb"    id="s-pending" style="background:rgba(232,133,74,.1);color:var(--org)" onclick="setSt('pending')">⏳ Pending</button>
+      </div>
+    </div>
+
+    <div class="pnl"><div class="pt">👤 Sales Rep</div><div class="fw" id="rbtn"></div></div>
+    <div class="pnl">
+      <div class="pt">🗺️ Legend</div>
+      <div style="font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Client Status</div>
+      <div class="li"><div class="dot" style="background:#3DBE75"></div>Order Created</div>
+      <div class="li"><div class="dot" style="background:#2AABB8"></div>Called — Positive</div>
+      <div class="li"><div class="dot" style="background:#F5C842"></div>Called — Follow Up</div>
+      <div class="li"><div class="dot" style="background:#E84A4A"></div>Called — Negative</div>
+      <div class="li"><div class="dot" style="background:#E8854A"></div>Not Called Yet</div>
+      <div style="height:8px"></div>
+      <div style="font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Sectors</div>
+      <div id="sleg"></div>
+    </div>
+    <div class="pnl"><div class="pt">📈 Visible Stats</div><div id="lstats"></div></div>
+    <div class="pnl"><div class="pt">👥 Reps</div><div id="rlist"></div></div>
+  </div>
+  <div id="mwrap">
+    <div id="map"></div>
+    <div id="cbar">Showing <b id="cb1">—</b> &nbsp;|&nbsp; Called <b id="cb2">—</b> &nbsp;|&nbsp; Orders <b id="cb3">—</b> &nbsp;|&nbsp; Pending <b id="cb4">—</b></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+  <!-- Filter bar -->
+  <div class="dash-filters">
+    <div class="df-group">
+      <label>From</label>
+      <input type="date" class="df-input" id="df-from">
+      <div class="df-divider"></div>
+      <label>To</label>
+      <input type="date" class="df-input" id="df-to">
+    </div>
+    <div class="df-group">
+      <label>Period</label>
+      <div class="df-period-btns">
+        <button class="df-pbtn on" data-p="daily"   onclick="setPeriod('daily',this)">Daily</button>
+        <button class="df-pbtn"    data-p="weekly"  onclick="setPeriod('weekly',this)">Weekly</button>
+        <button class="df-pbtn"    data-p="monthly" onclick="setPeriod('monthly',this)">Monthly</button>
+      </div>
+    </div>
+    <div class="df-group">
+      <label>Sector</label>
+      <select class="df-select" id="df-sector" onchange="renderDash()">
+        <option value="all">All Sectors</option>
+      </select>
+    </div>
+    <div class="df-group">
+      <label>Rep</label>
+      <select class="df-select" id="df-rep" onchange="renderDash()">
+        <option value="all">All Reps</option>
+      </select>
+    </div>
+    <button class="df-reset" onclick="resetDashFilters()">↺ Reset</button>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="dkpi" style="--accent:var(--teal)">
+      <div class="dkpi-val" id="dk-assigned">—</div>
+      <div class="dkpi-lbl">Clients Assigned</div>
+      <div class="dkpi-sub" id="dk-assigned-sub"></div>
+    </div>
+    <div class="dkpi" style="--accent:var(--yel)">
+      <div class="dkpi-val" id="dk-called">—</div>
+      <div class="dkpi-lbl">Clients Called</div>
+      <div class="dkpi-sub" id="dk-called-sub"></div>
+    </div>
+    <div class="dkpi" style="--accent:var(--grn)">
+      <div class="dkpi-val" id="dk-orders">—</div>
+      <div class="dkpi-lbl">Orders Created</div>
+      <div class="dkpi-sub" id="dk-orders-sub"></div>
+    </div>
+    <div class="dkpi" style="--accent:var(--org)">
+      <div class="dkpi-val" id="dk-conv">—</div>
+      <div class="dkpi-lbl">Conversion Rate</div>
+      <div class="dkpi-sub" id="dk-conv-sub"></div>
+    </div>
+    <div class="dkpi" style="--accent:#9b5de5">
+      <div class="dkpi-val" id="dk-rev">—</div>
+      <div class="dkpi-lbl">Revenue Potential</div>
+      <div class="dkpi-sub" id="dk-rev-sub">MAD at stake</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Daily calls trend + Call result donut -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="cc-title">Daily Call Activity</div>
+      <div class="cc-sub">Calls made per day over the activation period</div>
+      <div class="chart-wrap"><canvas id="ch-daily" height="180"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-title">Call Result Breakdown</div>
+      <div class="cc-sub">Distribution of first contact outcomes</div>
+      <div class="chart-wrap" style="display:flex;align-items:center;justify-content:center">
+        <canvas id="ch-results" height="200" width="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Orders by rep bar + Coverage funnel -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="cc-title">Performance by Rep</div>
+      <div class="cc-sub">Calls made vs orders created per sales rep</div>
+      <div class="chart-wrap"><canvas id="ch-reps" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-title">Campaign Funnel</div>
+      <div class="cc-sub">Assigned → Called → Positive → Ordered</div>
+      <div class="chart-wrap"><canvas id="ch-funnel" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Full-width rep table -->
+  <div class="chart-grid full">
+    <div class="chart-card">
+      <div class="cc-title">Rep Leaderboard</div>
+      <div class="cc-sub">Detailed breakdown per sales representative</div>
+      <table class="rep-table" id="rep-tbl">
+        <thead><tr>
+          <th>Rep</th><th>Assigned</th><th>Called</th><th>Coverage</th>
+          <th>Positive</th><th>Orders</th><th>Conv%</th><th>Rev. Potential</th><th>Status</th>
+        </tr></thead>
+        <tbody id="rep-tbl-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- SheetJS for Excel parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+// ── EMBEDDED SECTORS ─────────────────────────────────────────────────────
+var SECTORS = [{"name": "Polygon 1", "coords": [[-7.5545827, 33.5790698], [-7.5734033, 33.5685945], [-7.5867923, 33.561192], [-7.593743, 33.5595103], [-7.5626603, 33.5243092], [-7.5364081, 33.4873843], [-7.519955, 33.4944539], [-7.5047005, 33.5040266], [-7.4790732, 33.5291789], [-7.5545827, 33.5790698]]}, {"name": "Polygon 3", "coords": [[-7.6446574, 33.5488315], [-7.6975294, 33.5160632], [-7.683968, 33.4993165], [-7.6734963, 33.4955949], [-7.6693765, 33.494378], [-7.6674454, 33.4938143], [-7.6655142, 33.4934295], [-7.6613086, 33.4933041], [-7.6266328, 33.5005333], [-7.6446574, 33.5488315]]}, {"name": "Polygon 4", "coords": [[-7.6355424, 33.5916898], [-7.6393308, 33.6045732], [-7.6547077, 33.6081628], [-7.6761654, 33.5930069], [-7.6826885, 33.589289], [-7.6741404, 33.5774017], [-7.6677888, 33.5706795], [-7.6693338, 33.5623834], [-7.6549999, 33.5546587], [-7.6472328, 33.5652806], [-7.643842, 33.5696068], [-7.6385204, 33.5768296], [-7.6296072, 33.5863333], [-7.6355424, 33.5916898]]}, {"name": "Polygon 5", "coords": [[-7.6825168, 33.5888602], [-7.73168, 33.5535087], [-7.6961461, 33.5167352], [-7.6444428, 33.5488671], [-7.656544, 33.5559837], [-7.6693338, 33.5623834], [-7.6676171, 33.5702508], [-7.6825168, 33.5888602]]}, {"name": "Polygon 6", "coords": [[-7.6726063, 33.4950187], [-7.6806529, 33.4759055], [-7.6847728, 33.4641635], [-7.6686366, 33.4461177], [-7.6549037, 33.4392422], [-7.6528438, 33.4234836], [-7.6459773, 33.4143137], [-7.6265796, 33.4172511], [-7.6280868, 33.4347588], [-7.6307291, 33.4421161], [-7.6333721, 33.4484709], [-7.6334724, 33.4799778], [-7.6266328, 33.5005333], [-7.6323639, 33.4993706], [-7.6370218, 33.4983867], [-7.6495559, 33.4958276], [-7.6559838, 33.4943732], [-7.6613086, 33.4933041], [-7.6655142, 33.4934295], [-7.6726063, 33.4950187]]}, {"name": "Polygon 7", "coords": [[-7.5302777, 33.4180388], [-7.5532801, 33.4134537], [-7.5692447, 33.4081517], [-7.5821192, 33.4017033], [-7.5828032, 33.3789125], [-7.5718195, 33.3532518], [-7.5611762, 33.3480903], [-7.547787, 33.3480898], [-7.5100217, 33.3552593], [-7.4903692, 33.3650763], [-7.4755144, 33.3989751], [-7.494483, 33.4246975], [-7.5302777, 33.4180388]]}, {"name": "Polygon 8", "coords": [[-7.5734892, 33.297511], [-7.5797036, 33.2825257], [-7.5920961, 33.2854766], [-7.6078773, 33.2790633], [-7.6078708, 33.2758565], [-7.605547, 33.2745153], [-7.609065, 33.2690604], [-7.6093214, 33.2613807], [-7.6002231, 33.262278], [-7.6009097, 33.2568594], [-7.5973048, 33.2566081], [-7.5942149, 33.2570745], [-7.5964472, 33.2500582], [-7.5961043, 33.2411755], [-7.5911274, 33.2342493], [-7.5845726, 33.2332625], [-7.5790476, 33.2363675], [-7.5724604, 33.2412849], [-7.5750134, 33.2509034], [-7.5625458, 33.2496832], [-7.5507012, 33.259947], [-7.553855, 33.2782811], [-7.5598422, 33.294175], [-7.5687255, 33.2980671], [-7.5734892, 33.297511]]}, {"name": "Polygon 9", "coords": [[-7.6056288, 33.5845202], [-7.6038799, 33.583032], [-7.6020881, 33.5814366], [-7.6005215, 33.5787461], [-7.5973031, 33.5722568], [-7.595973, 33.5691552], [-7.5952438, 33.5660535], [-7.5947506, 33.5622367], [-7.5944397, 33.5604623], [-7.5930667, 33.559287], [-7.5867062, 33.5608345], [-7.5415879, 33.5854092], [-7.5187724, 33.5954597], [-7.4966378, 33.6069361], [-7.4849221, 33.6131549], [-7.4768973, 33.6172114], [-7.4699876, 33.6218392], [-7.4919601, 33.6448142], [-7.4952693, 33.6432828], [-7.5003379, 33.6408581], [-7.5120025, 33.6328384], [-7.5240081, 33.62396], [-7.5338707, 33.6198416], [-7.5509425, 33.6195813], [-7.604643, 33.5963192], [-7.6056288, 33.5845202]]}, {"name": "Polygon 10", "coords": [[-7.4703732, 33.6217858], [-7.4768973, 33.6172114], [-7.4903554, 33.6100934], [-7.5115336, 33.5986121], [-7.5340583, 33.5894506], [-7.5410488, 33.5861912], [-7.5544325, 33.5790698], [-7.4645678, 33.5185175], [-7.450891, 33.5228968], [-7.439187, 33.5285988], [-7.4621897, 33.613093], [-7.4703732, 33.6217858]]}, {"name": "Polygon 11", "coords": [[-7.73168, 33.5535087], [-7.8073481, 33.5278228], [-7.8217676, 33.5364084], [-7.863653, 33.5129391], [-7.8100947, 33.4539517], [-7.7503945, 33.4799158], [-7.7375662, 33.4863313], [-7.7190704, 33.4895959], [-7.6945635, 33.5043834], [-7.6892729, 33.5061295], [-7.6903337, 33.5073031], [-7.6943126, 33.5120191], [-7.6973322, 33.5157547], [-7.6961461, 33.5167352], [-7.73168, 33.5535087]]}, {"name": "Polygon 12", "coords": [[-7.863653, 33.5129391], [-7.961783, 33.479259], [-7.9102846, 33.3895818], [-7.8526154, 33.395753], [-7.7832551, 33.4345752], [-7.863653, 33.5129391]]}, {"name": "Polygon 13", "coords": [[-7.593743, 33.5595103], [-7.5973892, 33.5726143], [-7.6009296, 33.5793628], [-7.6054147, 33.5853961], [-7.6107675, 33.5839405], [-7.618664, 33.5827249], [-7.6238138, 33.5833685], [-7.6258737, 33.5770759], [-7.6276762, 33.5639172], [-7.6264745, 33.5606987], [-7.6233416, 33.5531885], [-7.6188356, 33.5542614], [-7.593743, 33.5595103]]}, {"name": "Polygon 14", "coords": [[-7.6270516, 33.6107469], [-7.6395026, 33.6040014], [-7.6357142, 33.591118], [-7.6291974, 33.5854388], [-7.6238138, 33.5833685], [-7.6181252, 33.5827932], [-7.6145203, 33.5836513], [-7.6107675, 33.5839405], [-7.6050361, 33.5852243], [-7.6050726, 33.5969806], [-7.6079509, 33.5967149], [-7.6146257, 33.6003712], [-7.6182111, 33.6058861], [-7.6183827, 33.6079591], [-7.6270516, 33.6107469]]}, {"name": "Polygon 15", "coords": [[-7.6300696, 33.5857439], [-7.6426009, 33.5714424], [-7.6549999, 33.5546587], [-7.644829, 33.5485452], [-7.6232558, 33.5537608], [-7.6276762, 33.5639172], [-7.6258639, 33.5764482], [-7.6238138, 33.5833685], [-7.6300696, 33.5857439]]}, {"name": "Polygon 16", "coords": [[-7.5940864, 33.560226], [-7.5981654, 33.5586306], [-7.6449584, 33.549082], [-7.6275412, 33.5006222], [-7.5952733, 33.4948276], [-7.5784287, 33.4883589], [-7.5619267, 33.495632], [-7.5469263, 33.5021175], [-7.5559467, 33.5158077], [-7.5663434, 33.5287816], [-7.5940864, 33.560226]]}, {"name": "Polygon 17", "coords": [[-7.4898139, 33.6430819], [-7.4621897, 33.613093], [-7.4597415, 33.5999853], [-7.3955401, 33.6351513], [-7.4470385, 33.6771601], [-7.4898139, 33.6430819]]}, {"name": "Polygon 19", "coords": [[-7.4038524, 33.7113465], [-7.4470385, 33.6771601], [-7.4165125, 33.651923], [-7.3942394, 33.6617821], [-7.3890895, 33.6617821], [-7.3791332, 33.6666399], [-7.3805065, 33.6743545], [-7.3551006, 33.6892103], [-7.3389644, 33.6977798], [-7.3308963, 33.7049204], [-7.3252315, 33.7070625], [-7.3386211, 33.7193427], [-7.3502941, 33.7199138], [-7.3633403, 33.7107753], [-7.3835964, 33.7080621], [-7.3985309, 33.7144879], [-7.4038524, 33.7113465]]}, {"name": "Polygon 20", "coords": [[-7.6368464, 33.0131175], [-7.6399151, 33.0150607], [-7.6441854, 33.0136211], [-7.6542709, 33.009734], [-7.6582185, 32.9980008], [-7.6586259, 32.9910722], [-7.6550853, 32.9897587], [-7.6522742, 32.9890571], [-7.6504931, 32.9897953], [-7.6438844, 32.984109], [-7.6414162, 32.9822378], [-7.6373174, 32.9808345], [-7.6230261, 32.9801511], [-7.599083, 32.9711493], [-7.5896444, 32.9905848], [-7.595737, 32.993609], [-7.5953071, 33.0113183], [-7.6054745, 33.0351057], [-7.62114, 33.0367982], [-7.6289091, 33.0348534], [-7.6278148, 33.0145945], [-7.6295792, 33.0155208], [-7.632631, 33.0151516], [-7.6368464, 33.0131175]]}];
+
+// ── PALETTES ─────────────────────────────────────────────────────────────
+var SEC_PAL=['#e63946','#f4a261','#2a9d8f','#457b9d','#9b5de5','#f72585','#4cc9f0','#80b918','#fb5607','#3a86ff','#ff006e','#8338ec','#06d6a0','#ffd166','#ef476f','#118ab2','#b5e48c','#c77dff'];
+var REP_PAL=['#2AABB8','#E8854A','#3DBE75','#F5C842','#9b5de5','#f72585','#4cc9f0','#80b918','#fb5607','#3a86ff','#ef476f','#118ab2','#b5e48c','#ffd166','#8338ec'];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+var CUSTOMERS=[], REP_COL={}, allReps=[];
+var activeSt='all', activeReps=new Set(['all']);
+var map=null, markerGroup=null, markerMap=[], leafletReady=false;
+var parsedCustomers=[], activeTab='file';
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────
+function switchTab(t){
+  activeTab=t;
+  document.getElementById('tab-file').classList.toggle('on',t==='file');
+  document.getElementById('tab-paste').classList.toggle('on',t==='paste');
+  document.getElementById('pane-file').style.display=t==='file'?'':'none';
+  document.getElementById('pane-paste').style.display=t==='paste'?'':'none';
+  clearStatus(); parsedCustomers=[];
+  document.getElementById('btn-go').disabled=true;
+  document.getElementById('btn-go').textContent='Launch Map →';
+}
+
+function clearStatus(){
+  document.getElementById('status-msg').innerHTML='';
+}
+function setStatus(html){
+  document.getElementById('status-msg').innerHTML=html;
+}
+
+// ── ROW → CUSTOMER ────────────────────────────────────────────────────────
+function rowToCustomer(r){
+  // Flexible column name matching
+  function get(){
+    for(var i=0;i<arguments.length;i++){
+      var v=r[arguments[i]];
+      if(v!==undefined&&v!==null&&String(v).trim()!=='') return String(v).trim();
+    }
+    return '';
+  }
+  var lng=parseFloat(get('X','x','Longitude','longitude','lng','LNG'));
+  var lat=parseFloat(get('Y','y','Latitude','latitude','lat','LAT'));
+  if(isNaN(lng)||isNaN(lat)) return null;
+  // Skip obviously bogus coordinates
+  if(Math.abs(lng)<0.001&&Math.abs(lat)<0.001) return null;
+  var orderStatus=get('Order Status','ORDER_STATUS','order_status');
+  var isOrder=['ordered','paid'].indexOf(orderStatus.toLowerCase())>=0;
+  var c1date=get('CONTACT_1_DATE','Contact_1_Date','contact_1_date');
+  var called=c1date.length>0;
+  return{
+    customer_id:get('CUSTOMER_ID','Customer_Id','CUSTOMER ID','customer_id','ID'),
+    name:get('CUSTOMER_NAME','Customer_Name','NAME','name'),
+    rep:get('SALE_REP','Sale_Rep','SALREP','REP','rep'),
+    city:get('CITY','City','city'),
+    lng:lng, lat:lat,
+    tier:get('VALUE_TIER','Value_Tier','TIER','tier'),
+    revenue:parseFloat(get('TOTAL_REVENUE','Total_Revenue','REVENUE','revenue').replace(/[^0-9.]/g,''))||0,
+    days_inactive:parseInt(get('DAYS_INACTIVE','Days_Inactive','DAYS','days'))||0,
+    called:called?1:0, order:isOrder?1:0,
+    contact:get('CONTACT NUMBER','Contact_Number','CONTACT','contact','PHONE','phone'),
+    result:get('CONTACT_1_RESULT','Contact_1_Result','RESULT','result'),
+    contact_1_date:get('CONTACT_1_DATE','Contact_1_Date','contact_1_date'),
+    order_value:get('ORDER_VALUE','Order_Value'),
+    order_status:get('Order Status','ORDER_STATUS','order_status'),
+    notes:get('NOTES','Notes','notes')
+  };
+}
+
+// ── PARSE ROWS ARRAY ──────────────────────────────────────────────────────
+function processRows(rows){
+  var customers=rows.map(rowToCustomer).filter(Boolean);
+  if(!customers.length){
+    setStatus('<span class="err-msg">No valid rows found — make sure X and Y columns contain coordinates.</span>');
+    document.getElementById('btn-go').disabled=true;
+    return;
+  }
+  parsedCustomers=customers;
+  setStatus('<span class="file-ok">✓ Ready</span> <span class="file-cnt">'+customers.length+' clients loaded from '+rows.length+' rows</span>');
+  document.getElementById('btn-go').disabled=false;
+  document.getElementById('btn-go').textContent='Launch Map — '+customers.length+' clients →';
+}
+
+// ── FILE UPLOAD ───────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change',function(e){
+  var file=e.target.files[0]; if(!file) return; handleFile(file);
+});
+var dz=document.getElementById('dz');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag')});
+dz.addEventListener('drop',function(e){
+  e.preventDefault();dz.classList.remove('drag');
+  var file=e.dataTransfer.files[0]; if(file) handleFile(file);
+});
+
+function handleFile(file){
+  clearStatus();
+  var ext=file.name.split('.').pop().toLowerCase();
+  var reader=new FileReader();
+
+  if(ext==='csv'||ext==='txt'){
+    reader.onload=function(e){ processRows(parseCSVText(e.target.result)); };
+    reader.readAsText(file,'UTF-8');
+  } else if(['xlsx','xls','ods','xlsm'].indexOf(ext)>=0){
+    if(typeof XLSX==='undefined'){
+      setStatus('<span class="err-msg">Excel parser still loading — try again in a second.</span>'); return;
+    }
+    reader.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+        // Find the sheet with the most rows (likely the Raw Call Log)
+        var bestSheet=null, bestCount=0;
+        wb.SheetNames.forEach(function(n){
+          var r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:''});
+          if(r.length>bestCount){bestCount=r.length;bestSheet=n;}
+        });
+        // If there's a "Raw Call Log" sheet, prefer it
+        if(wb.SheetNames.indexOf('Raw Call Log')>=0) bestSheet='Raw Call Log';
+        var rows=XLSX.utils.sheet_to_json(wb.Sheets[bestSheet],{defval:''});
+        processRows(rows);
+      }catch(ex){
+        setStatus('<span class="err-msg">Could not read Excel file: '+ex.message+'</span>');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    setStatus('<span class="err-msg">Unsupported format. Please use .xlsx, .xls, or .csv</span>');
+  }
+}
+
+// ── CSV TEXT PARSER ───────────────────────────────────────────────────────
+function parseCSVText(text){
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim()});
+  if(!lines.length) return [];
+  var delim=lines[0].includes('\t')?'\t':',';
+  var headers=splitLine(lines[0],delim).map(function(h){return h.trim().replace(/^"|"$/g,'')});
+  var rows=[];
+  for(var i=1;i<lines.length;i++){
+    var vals=splitLine(lines[i],delim);
+    if(vals.every(function(v){return !v.trim()})) continue;
+    var obj={};
+    headers.forEach(function(h,j){obj[h]=(vals[j]||'').trim().replace(/^"|"$/g,'')});
+    rows.push(obj);
+  }
+  return rows;
+}
+function splitLine(line,delim){
+  var result=[],cur='',inQ=false;
+  for(var i=0;i<line.length;i++){
+    var c=line[i];
+    if(c==='"'){inQ=!inQ}
+    else if(c===delim&&!inQ){result.push(cur);cur=''}
+    else{cur+=c}
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── PASTE FROM EXCEL ──────────────────────────────────────────────────────
+var pasteArea=document.getElementById('paste-area');
+var pasteTimeout=null;
+
+pasteArea.addEventListener('input',function(){
+  clearTimeout(pasteTimeout);
+  pasteTimeout=setTimeout(processPaste,400);
+});
+pasteArea.addEventListener('paste',function(){
+  clearTimeout(pasteTimeout);
+  pasteTimeout=setTimeout(processPaste,100);
+});
+
+function processPaste(){
+  var text=pasteArea.value.trim();
+  if(!text){clearStatus();parsedCustomers=[];document.getElementById('btn-go').disabled=true;return;}
+  // Always treat pasted content as TSV (Excel copies as tab-separated)
+  var rows=parseCSVText(text);
+  if(!rows.length){
+    setStatus('<span class="err-msg">Could not parse pasted content. Make sure you copied from the header row.</span>');
+    return;
+  }
+  processRows(rows);
+}
+
+// ── SHOW UPLOAD ───────────────────────────────────────────────────────────
+function showUpload(){
+  document.getElementById('upload-screen').style.display='flex';
+  clearStatus(); parsedCustomers=[];
+  document.getElementById('btn-go').disabled=true;
+  document.getElementById('btn-go').textContent='Launch Map →';
+  document.getElementById('file-input').value='';
+  document.getElementById('paste-area').value='';
+  switchTab('file');
+}
+
+// ── LAUNCH MAP ────────────────────────────────────────────────────────────
+function launchMap(){
+  if(!parsedCustomers.length) return;
+  CUSTOMERS=parsedCustomers;
+  allReps=[...new Set(CUSTOMERS.map(function(c){return c.rep}))].filter(Boolean).sort();
+  REP_COL={};
+  allReps.forEach(function(r,i){REP_COL[r]=REP_PAL[i%REP_PAL.length]});
+
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('bar').style.display='flex';
+  document.getElementById('app').style.display='flex';
+
+  // Reset filters
+  activeSt='all';activeReps=new Set(['all']);
+  document.querySelectorAll('.sb').forEach(function(b){b.classList.remove('on')});
+  document.getElementById('s-all').classList.add('on');
+
+  if(leafletReady){buildRepButtons();if(markerGroup)markerGroup.clearLayers();render();}
+  else loadLeaflet();
+}
+
+// ── LOAD LEAFLET ──────────────────────────────────────────────────────────
+function loadLeaflet(){
+  document.getElementById('loader').style.display='flex';
+  var s=document.createElement('script');
+  s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  s.onload=function(){leafletReady=true;initMap()};
+  s.onerror=function(){
+    var s2=document.createElement('script');
+    s2.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    s2.onload=function(){leafletReady=true;initMap()};
+    s2.onerror=function(){document.getElementById('loader-msg').textContent='Map library failed to load. Check your internet connection.';};
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+}
+
+function clientColor(c){
+  if(c.order) return '#3DBE75';
+  if(c.called){
+    if(c.result==='Positive')   return '#2AABB8';
+    if(c.result==='Call Again') return '#F5C842';
+    if(c.result==='Negative')   return '#E84A4A';
+    return '#2AABB8';
+  }
+  return '#E8854A';
+}
+
+// ── INIT MAP ──────────────────────────────────────────────────────────────
+function initMap(){
+  if(!map){
+    map=L.map('map',{center:[33.56,-7.62],zoom:12});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom:19
+    }).addTo(map);
+
+    // Sectors (drawn once, never redrawn)
+    var secLeg=document.getElementById('sleg');
+    SECTORS.forEach(function(sec,i){
+      var col=SEC_PAL[i%SEC_PAL.length];
+      L.polygon(sec.coords.map(function(c){return[c[1],c[0]]}),
+        {color:col,weight:2,opacity:.85,fillColor:col,fillOpacity:.10,dashArray:'5,4'})
+        .addTo(map)
+        .bindTooltip('<b>'+sec.name+'</b>',{sticky:true,direction:'center'});
+      var d=document.createElement('div');d.className='li';
+      d.innerHTML='<div class="sw" style="background:'+col+';border:1px solid '+col+'"></div>'+sec.name;
+      secLeg.appendChild(d);
+    });
+    markerGroup=L.layerGroup().addTo(map);
+  }
+  buildRepButtons();
+  document.getElementById('loader').style.display='none';
+  render();
+}
+
+// ── REP BUTTONS ───────────────────────────────────────────────────────────
+function buildRepButtons(){
+  var rbtn=document.getElementById('rbtn');rbtn.innerHTML='';
+  var allBtn=document.createElement('button');
+  allBtn.className='fb on';allBtn.textContent='All';allBtn.style.color='#2AABB8';
+  allBtn.onclick=function(){activeReps=new Set(['all']);document.querySelectorAll('#rbtn .fb').forEach(function(b){b.classList.remove('on')});allBtn.classList.add('on');render();};
+  rbtn.appendChild(allBtn);
+  allReps.forEach(function(rep){
+    var btn=document.createElement('button');btn.className='fb';
+    btn.textContent=rep.length>14?rep.slice(0,14)+'…':rep;
+    btn.title=rep;btn.style.color=REP_COL[rep]||'#aaa';
+    btn.onclick=function(){
+      if(activeReps.has('all')) activeReps.delete('all');
+      if(activeReps.has(rep)) activeReps.delete(rep); else activeReps.add(rep);
+      if(!activeReps.size) activeReps.add('all');
+      allBtn.classList.toggle('on',activeReps.has('all'));
+      document.querySelectorAll('#rbtn .fb:not(:first-child)').forEach(function(b){b.classList.toggle('on',activeReps.has(b.title))});
+      render();
+    };
+    rbtn.appendChild(btn);
+  });
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────
+function setSt(s){activeSt=s;['all','order','called','pending'].forEach(function(id){var el=document.getElementById('s-'+id);if(el)el.classList.toggle('on',id===s)});render();}
+function getVisible(){
+  return CUSTOMERS.filter(function(c){
+    if(!activeReps.has('all')&&!activeReps.has(c.rep)) return false;
+    if(activeSt==='order'&&!c.order) return false;
+    if(activeSt==='called'&&!c.called) return false;
+    if(activeSt==='pending'&&c.called) return false;
+    return true;
+  });
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render(){
+  if(!markerGroup||!map) return;
+  markerGroup.clearLayers();markerMap=[];
+  var vis=getVisible();
+  vis.forEach(function(c){
+    var col=clientColor(c),r=c.order?9:c.called?7:6;
+    var m=L.circleMarker([c.lat,c.lng],{radius:r,color:'rgba(255,255,255,0.2)',weight:c.order?2.5:1.5,fillColor:col,fillOpacity:.92});
+    var sHtml=c.order?'<div class="pst pst-o">✅ Order Created'+(c.order_status?' · '+c.order_status:'')+'</div>'
+      :c.called?'<div class="pst pst-c">📞 Called · '+(c.result||'—')+'</div>'
+      :'<div class="pst pst-p">⏳ Not Yet Called</div>';
+    var rev=c.revenue>0?c.revenue.toLocaleString('fr',{maximumFractionDigits:0})+' MAD':'—';
+    m.bindPopup(
+      '<div class="pn">'+e(c.name)+'</div>'+
+      (c.customer_id?'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--txt3);margin-bottom:2px">ID: '+e(c.customer_id)+'</div>':'')+
+      '<div class="pr">👤 '+e(c.rep)+'</div>'+
+      '<div class="pg">'+
+        kv('City',c.city)+kv('Tier',c.tier)+kv('Revenue',rev)+
+        kv('Inactive',c.days_inactive+'d')+kv('Contact',c.contact||'—')+
+        (c.customer_id?kv('Customer ID',c.customer_id):'')+
+        (c.notes?kv('Notes',c.notes):'')+
+      '</div>'+sHtml,{maxWidth:250}
+    );
+    markerGroup.addLayer(m);markerMap.push({marker:m,customer:c});
+  });
+  updateAll(vis);
+}
+function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function kv(k,v){return '<div><div class="pk">'+k+'</div><div class="pv">'+e(v)+'</div></div>'}
+
+function updateAll(vis){
+  var tot=CUSTOMERS.length,called=CUSTOMERS.filter(function(c){return c.called}).length,orders=CUSTOMERS.filter(function(c){return c.order}).length;
+  document.getElementById('k1').textContent=tot;
+  document.getElementById('k2').textContent=called;
+  document.getElementById('k3').textContent=orders;
+  document.getElementById('k4').textContent=called>0?(orders/called*100).toFixed(1)+'%':'0%';
+  var vcal=vis.filter(function(c){return c.called}).length,vord=vis.filter(function(c){return c.order}).length,vpen=vis.filter(function(c){return !c.called}).length;
+  var vrev=vis.reduce(function(a,c){return a+c.revenue},0);
+  document.getElementById('lstats').innerHTML=
+    sr('Showing',vis.length)+sr('Called',vcal)+sr('Pending',vpen)+sr('Orders',vord)+
+    sr('Conv. Rate',vcal>0?(vord/vcal*100).toFixed(1)+'%':'0%')+
+    sr('Rev. Potential',vrev.toLocaleString('fr',{maximumFractionDigits:0})+' MAD');
+  var repC={};vis.forEach(function(c){repC[c.rep]=(repC[c.rep]||0)+1});
+  var rl=document.getElementById('rlist');rl.innerHTML='';
+  Object.entries(repC).sort(function(a,b){return b[1]-a[1]}).forEach(function(en){
+    var d=document.createElement('div');d.className='rr';
+    d.innerHTML='<div class="rd" style="background:'+(REP_COL[en[0]]||'#555')+'"></div><span class="rn" title="'+e(en[0])+'">'+e(en[0])+'</span><span class="rc">'+en[1]+'</span>';
+    rl.appendChild(d);
+  });
+  document.getElementById('cb1').textContent=vis.length;
+  document.getElementById('cb2').textContent=vcal;
+  document.getElementById('cb3').textContent=vord;
+  document.getElementById('cb4').textContent=vpen;
+}
+function sr(l,v){return '<div class="st"><span class="sl">'+l+'</span><span class="sv">'+v+'</span></div>'}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────
+document.getElementById('srch').addEventListener('input',function(){
+  var q=this.value.toLowerCase().trim(),sr=document.getElementById('sres');sr.innerHTML='';
+  if(!q) return;
+  CUSTOMERS.filter(function(c){return c.name.toLowerCase().includes(q)||c.rep.toLowerCase().includes(q)||c.city.toLowerCase().includes(q)}).slice(0,8).forEach(function(c){
+    var d=document.createElement('div');d.className='sri';
+    d.innerHTML='<b>'+e(c.name)+'</b> <span style="color:#4a6a7a">'+e(c.rep)+'</span>';
+    d.onclick=function(){if(!map)return;map.setView([c.lat,c.lng],16);markerMap.forEach(function(m){if(m.customer===c)m.marker.openPopup()});document.getElementById('srch').value='';sr.innerHTML='';};
+    sr.appendChild(d);
+  });
+});
+
+
+// ── DASHBOARD STATE ──────────────────────────────────────────────────────
+var dashPeriod = 'daily';
+var dashCharts = {};
+
+function switchView(v) {
+  var isMap = v === 'map';
+  document.getElementById('app').style.display       = isMap ? 'flex' : 'none';
+  document.getElementById('dashboard').style.display = isMap ? 'none' : 'block';
+  document.getElementById('nav-map').classList.toggle('on', isMap);
+  document.getElementById('nav-dash').classList.toggle('on', !isMap);
+  if (!isMap) { populateDashFilters(); renderDash(); }
+  if (isMap && map) setTimeout(function(){ map.invalidateSize(); }, 50);
+}
+window.switchView = switchView;
+
+function setPeriod(p, btn) {
+  dashPeriod = p;
+  document.querySelectorAll('.df-pbtn').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  renderDash();
+}
+window.setPeriod = setPeriod;
+
+function resetDashFilters() {
+  document.getElementById('df-from').value = '';
+  document.getElementById('df-to').value = '';
+  document.getElementById('df-sector').value = 'all';
+  document.getElementById('df-rep').value = 'all';
+  dashPeriod = 'daily';
+  document.querySelectorAll('.df-pbtn').forEach(function(b){
+    b.classList.toggle('on', b.dataset.p === 'daily');
+  });
+  renderDash();
+}
+window.resetDashFilters = resetDashFilters;
+
+// Wire date inputs
+document.getElementById('df-from').addEventListener('change', renderDash);
+document.getElementById('df-to').addEventListener('change', renderDash);
+
+function populateDashFilters() {
+  // Sectors
+  var secSel = document.getElementById('df-sector');
+  secSel.innerHTML = '<option value="all">All Sectors</option>';
+  SECTORS.forEach(function(s) {
+    var o = document.createElement('option'); o.value = s.name; o.textContent = s.name;
+    secSel.appendChild(o);
+  });
+  // Reps
+  var repSel = document.getElementById('df-rep');
+  repSel.innerHTML = '<option value="all">All Reps</option>';
+  allReps.forEach(function(r) {
+    var o = document.createElement('option'); o.value = r; o.textContent = r;
+    repSel.appendChild(o);
+  });
+}
+
+// Point-in-polygon test (ray casting)
+function pointInPolygon(lng, lat, coords) {
+  var inside = false;
+  for (var i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+    var xi = coords[i][0], yi = coords[i][1];
+    var xj = coords[j][0], yj = coords[j][1];
+    var intersect = ((yi > lat) !== (yj > lat)) &&
+                    (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function getClientSector(c) {
+  for (var i = 0; i < SECTORS.length; i++) {
+    if (pointInPolygon(c.lng, c.lat, SECTORS[i].coords)) return SECTORS[i].name;
+  }
+  return 'Outside Sectors';
+}
+
+function getDashFiltered() {
+  var fromVal = document.getElementById('df-from').value;
+  var toVal   = document.getElementById('df-to').value;
+  var secVal  = document.getElementById('df-sector').value;
+  var repVal  = document.getElementById('df-rep').value;
+
+  return CUSTOMERS.filter(function(c) {
+    // Rep filter
+    if (repVal !== 'all' && c.rep !== repVal) return false;
+    // Sector filter (only filter when a sector is selected)
+    if (secVal !== 'all') {
+      var sec = getClientSector(c);
+      if (sec !== secVal) return false;
+    }
+    // Date filter: filter on contact_1_date if available, otherwise include
+    if ((fromVal || toVal) && c.contact_1_date) {
+      var d = c.contact_1_date;
+      if (fromVal && d < fromVal) return false;
+      if (toVal   && d > toVal)   return false;
+    }
+    return true;
+  });
+}
+
+// Helper: group by date string based on period
+function dateBucket(dateStr) {
+  if (!dateStr) return null;
+  if (dashPeriod === 'daily') return dateStr.slice(0, 10);
+  if (dashPeriod === 'weekly') {
+    var d = new Date(dateStr);
+    var day = d.getDay();
+    var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    var mon = new Date(d.setDate(diff));
+    return mon.toISOString().slice(0, 10);
+  }
+  if (dashPeriod === 'monthly') return dateStr.slice(0, 7);
+  return dateStr.slice(0, 10);
+}
+
+function fmtBucket(b) {
+  if (!b) return '';
+  if (dashPeriod === 'monthly') {
+    var parts = b.split('-');
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[parseInt(parts[1])-1] + ' ' + parts[0];
+  }
+  if (dashPeriod === 'weekly') return 'Wk ' + b.slice(5);
+  // daily: show dd/mm
+  return b.slice(8) + '/' + b.slice(5, 7);
+}
+
+function destroyChart(id) {
+  if (dashCharts[id]) { try { dashCharts[id].destroy(); } catch(e){} delete dashCharts[id]; }
+}
+
+function renderDash() {
+  var data = getDashFiltered();
+
+  // ── KPIs ─────────────────────────────────────────────────────────────────
+  var total    = data.length;
+  var called   = data.filter(function(c){ return c.called; }).length;
+  var orders   = data.filter(function(c){ return c.order; }).length;
+  var positive = data.filter(function(c){ return c.called && c.result === 'Positive'; }).length;
+  var conv     = called > 0 ? (orders / called * 100).toFixed(1) : 0;
+  var coverage = total > 0  ? (called / total * 100).toFixed(0) : 0;
+  var rev      = data.reduce(function(a,c){ return a + c.revenue; }, 0);
+
+  document.getElementById('dk-assigned').textContent = total;
+  document.getElementById('dk-assigned-sub').textContent = coverage + '% call coverage';
+  document.getElementById('dk-called').textContent = called;
+  document.getElementById('dk-called-sub').textContent = (total - called) + ' not yet called';
+  document.getElementById('dk-orders').textContent = orders;
+  document.getElementById('dk-orders-sub').textContent = positive + ' positive responses';
+  document.getElementById('dk-conv').textContent = conv + '%';
+  document.getElementById('dk-conv-sub').textContent = 'from ' + called + ' calls made';
+  document.getElementById('dk-rev').textContent = (rev/1000).toFixed(0) + 'k';
+
+  // Also update topbar KPIs
+  document.getElementById('k1').textContent = CUSTOMERS.length;
+  document.getElementById('k2').textContent = CUSTOMERS.filter(function(c){return c.called}).length;
+  document.getElementById('k3').textContent = CUSTOMERS.filter(function(c){return c.order}).length;
+  var allCalled = CUSTOMERS.filter(function(c){return c.called}).length;
+  var allOrders = CUSTOMERS.filter(function(c){return c.order}).length;
+  document.getElementById('k4').textContent = allCalled > 0 ? (allOrders/allCalled*100).toFixed(1)+'%' : '0%';
+
+  // ── CHART 1: Daily activity ───────────────────────────────────────────────
+  var buckets = {};
+  data.forEach(function(c) {
+    if (!c.called || !c.contact_1_date) return;
+    var b = dateBucket(c.contact_1_date);
+    if (!b) return;
+    if (!buckets[b]) buckets[b] = { calls:0, orders:0 };
+    buckets[b].calls++;
+    if (c.order) buckets[b].orders++;
+  });
+  var sortedBuckets = Object.keys(buckets).sort();
+  var labels1 = sortedBuckets.map(fmtBucket);
+  var callsData = sortedBuckets.map(function(b){ return buckets[b].calls; });
+  var ordersData = sortedBuckets.map(function(b){ return buckets[b].orders; });
+
+  destroyChart('daily');
+  var ctx1 = document.getElementById('ch-daily').getContext('2d');
+  dashCharts['daily'] = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: labels1,
+      datasets: [
+        { label: 'Calls', data: callsData, backgroundColor: 'rgba(42,171,184,.7)', borderColor: '#2AABB8', borderWidth:1, borderRadius:4 },
+        { label: 'Orders', data: ordersData, backgroundColor: 'rgba(61,190,117,.8)', borderColor: '#3DBE75', borderWidth:1, borderRadius:4 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#7a9ab0', font:{size:10}, boxWidth:10 } } },
+      scales:{
+        x:{ grid:{ color:'rgba(29,46,61,.6)' }, ticks:{ color:'#4a6a7a', font:{size:10} } },
+        y:{ grid:{ color:'rgba(29,46,61,.6)' }, ticks:{ color:'#4a6a7a', font:{size:10}, stepSize:1 }, beginAtZero:true }
+      }
+    }
+  });
+
+  // ── CHART 2: Call results donut ───────────────────────────────────────────
+  var positive2 = data.filter(function(c){ return c.called && c.result==='Positive'; }).length;
+  var again     = data.filter(function(c){ return c.called && c.result==='Call Again'; }).length;
+  var negative  = data.filter(function(c){ return c.called && c.result==='Negative'; }).length;
+  var noResult  = data.filter(function(c){ return c.called && !c.result; }).length;
+  var notCalled = data.filter(function(c){ return !c.called; }).length;
+
+  destroyChart('results');
+  var ctx2 = document.getElementById('ch-results').getContext('2d');
+  dashCharts['results'] = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['Positive', 'Call Again', 'Negative', 'Called (no result)', 'Not Called'],
+      datasets: [{
+        data: [positive2, again, negative, noResult, notCalled],
+        backgroundColor: ['rgba(42,171,184,.85)','rgba(245,200,66,.85)','rgba(232,74,74,.85)','rgba(155,93,229,.7)','rgba(232,133,74,.7)'],
+        borderColor: '#0f1820', borderWidth: 2, hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive:false, cutout:'65%',
+      plugins:{
+        legend:{ position:'right', labels:{ color:'#7a9ab0', font:{size:10}, boxWidth:10, padding:10 } }
+      }
+    }
+  });
+
+  // ── CHART 3: Reps bar ─────────────────────────────────────────────────────
+  var repStats = {};
+  data.forEach(function(c) {
+    if (!c.rep) return;
+    if (!repStats[c.rep]) repStats[c.rep] = { calls:0, orders:0 };
+    if (c.called) repStats[c.rep].calls++;
+    if (c.order)  repStats[c.rep].orders++;
+  });
+  var repNames  = Object.keys(repStats).sort(function(a,b){ return repStats[b].calls - repStats[a].calls; });
+  var repCalls  = repNames.map(function(r){ return repStats[r].calls; });
+  var repOrders = repNames.map(function(r){ return repStats[r].orders; });
+
+  destroyChart('reps');
+  var ctx3 = document.getElementById('ch-reps').getContext('2d');
+  dashCharts['reps'] = new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: repNames.map(function(r){ return r.length>14?r.slice(0,14)+'…':r; }),
+      datasets: [
+        { label:'Calls Made',     data:repCalls,  backgroundColor:'rgba(42,171,184,.65)', borderColor:'#2AABB8', borderWidth:1, borderRadius:3 },
+        { label:'Orders Created', data:repOrders, backgroundColor:'rgba(61,190,117,.8)',  borderColor:'#3DBE75', borderWidth:1, borderRadius:3 }
+      ]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#7a9ab0', font:{size:10}, boxWidth:10 } } },
+      scales:{
+        x:{ grid:{ color:'rgba(29,46,61,.6)' }, ticks:{ color:'#4a6a7a', font:{size:10}, stepSize:1 }, beginAtZero:true },
+        y:{ grid:{ color:'rgba(29,46,61,.6)' }, ticks:{ color:'#4a6a7a', font:{size:10} } }
+      }
+    }
+  });
+
+  // ── CHART 4: Funnel ───────────────────────────────────────────────────────
+  var funnelData = [total, called, positive, orders];
+  var funnelLabels = ['Assigned', 'Called', 'Positive Response', 'Order Created'];
+  var funnelColors = ['rgba(42,171,184,.75)','rgba(245,200,66,.75)','rgba(155,93,229,.75)','rgba(61,190,117,.85)'];
+
+  destroyChart('funnel');
+  var ctx4 = document.getElementById('ch-funnel').getContext('2d');
+  dashCharts['funnel'] = new Chart(ctx4, {
+    type: 'bar',
+    data: {
+      labels: funnelLabels,
+      datasets:[{
+        data: funnelData,
+        backgroundColor: funnelColors,
+        borderColor: funnelColors.map(function(c){ return c.replace('.75','1').replace('.85','1'); }),
+        borderWidth:1, borderRadius:6
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:'rgba(29,46,61,.6)' }, ticks:{ color:'#4a6a7a', font:{size:11} } },
+        y:{ grid:{ color:'rgba(29,46,61,.6)' }, ticks:{ color:'#4a6a7a', font:{size:10}, stepSize:1 }, beginAtZero:true }
+      }
+    }
+  });
+
+  // ── REP TABLE ─────────────────────────────────────────────────────────────
+  var repTableStats = {};
+  data.forEach(function(c) {
+    if (!c.rep) return;
+    if (!repTableStats[c.rep]) repTableStats[c.rep] = { assigned:0, called:0, positive:0, orders:0, rev:0 };
+    var r = repTableStats[c.rep];
+    r.assigned++;
+    if (c.called)  r.called++;
+    if (c.called && c.result==='Positive') r.positive++;
+    if (c.order)   r.orders++;
+    r.rev += c.revenue;
+  });
+  var maxCalls = Math.max.apply(null, Object.values(repTableStats).map(function(r){ return r.called; })) || 1;
+  var tbody = document.getElementById('rep-tbl-body');
+  tbody.innerHTML = '';
+  Object.entries(repTableStats)
+    .sort(function(a,b){ return b[1].orders - a[1].orders || b[1].called - a[1].called; })
+    .forEach(function(entry) {
+      var rn = entry[0], rs = entry[1];
+      var cov  = rs.assigned > 0 ? (rs.called/rs.assigned*100).toFixed(0) : 0;
+      var conv2 = rs.called  > 0 ? (rs.orders/rs.called*100).toFixed(1)  : 0;
+      var barW = (rs.called / maxCalls * 100).toFixed(0);
+      var badge = rs.orders > 0
+        ? '<span class="badge badge-grn">Active</span>'
+        : rs.called > 0
+          ? '<span class="badge badge-yel">Calling</span>'
+          : '<span class="badge badge-red">No calls</span>';
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td style="color:var(--txt);font-weight:600">'+rn+'</td>'+
+        '<td>'+rs.assigned+'</td>'+
+        '<td>'+rs.called+'<div class="rep-bar-wrap" style="margin-top:4px"><div class="rep-bar" style="width:'+barW+'%;background:'+(REP_COL[rn]||'#2AABB8')+'"></div></div></td>'+
+        '<td>'+cov+'%</td>'+
+        '<td>'+rs.positive+'</td>'+
+        '<td style="color:var(--grn);font-weight:600">'+rs.orders+'</td>'+
+        '<td style="color:'+(parseFloat(conv2)>10?'var(--grn)':parseFloat(conv2)>0?'var(--yel)':'var(--txt2)')+'">'+conv2+'%</td>'+
+        '<td style="font-family:monospace;font-size:10px">'+rs.rev.toLocaleString('fr',{maximumFractionDigits:0})+' MAD</td>'+
+        '<td>'+badge+'</td>';
+      tbody.appendChild(tr);
+    });
+}
+
+// ── EXPOSE GLOBALS (fixes "not defined" on inline onclick attrs) ──────────
+window.switchTab  = switchTab;
+window.launchMap  = launchMap;
+window.showUpload = showUpload;
+window.setSt      = setSt;
+</script>
+</body>
+</html>
