@@ -1,4 +1,4 @@
-# 🗺️ Tobeez — Sales Activation Map
+# Tobeez — Sales Activation Map
 
 A single-file, zero-dependency web tool for sales teams to visualize client call campaigns on an interactive map — with a live dashboard and rep performance analytics.
 
@@ -10,27 +10,27 @@ A single-file, zero-dependency web tool for sales teams to visualize client call
 
 ## 🔗 Live Demo
 
-👉 **[Launch the app](https://YOUR-USERNAME.github.io/tobeez-activation-map/)**
+**[Launch the app](https://YOUR-USERNAME.github.io/tobeez-activation-map/)**
 
 > Upload the sample CSV (included in this repo) to see the full experience.
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---|---|
-| 📍 **Interactive Map** | Leaflet.js map with color-coded client markers by call status |
-| 📊 **Live Dashboard** | 4 charts: coverage donut, results breakdown, rep bar chart, activation funnel |
-| 👤 **Rep Filtering** | Filter map and stats by sales representative |
-| 🔍 **Search** | Real-time search by client name, rep, or city |
-| 📋 **Data Table** | Sortable table view of all clients |
-| 📁 **CSV / Excel import** | Upload `.xlsx` / `.csv` or paste directly from Excel |
-| 📱 **No backend** | 100% client-side — runs from a single HTML file |
+| **Interactive Map** | Leaflet.js map with color-coded client markers by call status |
+| **Live Dashboard** | 4 charts: coverage donut, results breakdown, rep bar chart, activation funnel |
+| **Rep Filtering** | Filter map and stats by sales representative |
+| **Search** | Real-time search by client name, rep, or city |
+| **Data Table** | Sortable table view of all clients |
+| **CSV / Excel import** | Upload `.xlsx` / `.csv` or paste directly from Excel |
+| **No backend** | 100% client-side — runs from a single HTML file |
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 | Map View | Dashboard |
 |---|---|
@@ -38,7 +38,7 @@ A single-file, zero-dependency web tool for sales teams to visualize client call
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Option 1 — Use the live demo
 Click the link above, upload your CSV, and you're live.
@@ -53,7 +53,7 @@ open index.html
 
 ---
 
-## 📄 Data Format
+## Data Format
 
 Your CSV or Excel file should include these columns:
 
@@ -84,7 +84,7 @@ Your CSV or Excel file should include these columns:
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 - **[Leaflet.js](https://leafletjs.com/)** — interactive map rendering
 - **[Chart.js](https://www.chartjs.org/)** — dashboard charts
@@ -95,7 +95,7 @@ Your CSV or Excel file should include these columns:
 
 ---
 
-## 📁 Repo Structure
+## Repo Structure
 
 ```
 tobeez-activation-map/
@@ -106,7 +106,7 @@ tobeez-activation-map/
 
 ---
 
-## 💡 Use Cases
+## Use Cases
 
 - FMCG field sales activation tracking
 - Territory management & rep performance review
@@ -115,12 +115,12 @@ tobeez-activation-map/
 
 ---
 
-## 👤 Author
+## Author
 
 Built by **[Your Name]** — [LinkedIn](https://linkedin.com/in/YOUR-PROFILE) · [Portfolio](https://your-site.com)
 
 ---
 
-## 📜 License
+## License
 
 MIT — free to use and adapt.
