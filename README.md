@@ -10,7 +10,7 @@ A single-file, zero-dependency web tool for sales teams to visualize client call
 
 ## 🔗 Live Demo
 
-**[Launch the app](https://YOUR-USERNAME.github.io/tobeez-activation-map/)**
+**[Launch the app](https://dreasya.github.io/tobeez-activation-map/)**
 
 > Upload the sample CSV (included in this repo) to see the full experience.
 
@@ -117,7 +117,7 @@ tobeez-activation-map/
 
 ## Author
 
-Built by **[Your Name]** — [LinkedIn](https://linkedin.com/in/YOUR-PROFILE) · [Portfolio](https://your-site.com)
+Built by **[Mohamed Amin OUARGUI]** — [LinkedIn](https://linkedin.com/in/aouargui) · [Portfolio]((https://github.com/dreasya))
 
 ---
 
